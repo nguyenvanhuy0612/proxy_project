@@ -3,13 +3,14 @@ import * as net from 'net';
 import * as url from 'url';
 import { logger } from './logger';
 import { config } from './config';
+import { handleSocksConnection } from './socks';
 
 // 1. Ignore certificate errors (global setting)
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 const PORT = config.port;
 
-const server = http.createServer((req, res) => {
+const httpServer = http.createServer((req, res) => {
     // Check if this is a proxy request (absolute URI) or a direct request
     // For a forward proxy, browsers send the full URL: http://example.com/foo
     const parsedUrl = url.parse(req.url!);
@@ -55,7 +56,7 @@ const server = http.createServer((req, res) => {
 });
 
 // Handle HTTPS tunneling (CONNECT method)
-server.on('connect', (req, clientSocket, head) => {
+httpServer.on('connect', (req, clientSocket, head) => {
     const { port, hostname } = url.parse(`//${req.url}`, false, true);
 
     if (!hostname || !port) {
@@ -98,9 +99,37 @@ server.on('connect', (req, clientSocket, head) => {
     });
 });
 
+// Main Net Server to sniff traffic type
+const netServer = net.createServer((socket) => {
+    socket.once('data', (chunk) => {
+        // Pause to prevent data loss while making decision
+        socket.pause();
+
+        // 0x05 is SOCKS5 version
+        if (chunk[0] === 0x05) {
+            // Put the chunk back (although our socks handler usually expects fresh stream, 
+            // but we can pass the chunk or unshift).
+            // Our socks.ts reads date from 'data' event. 
+            // Better to unshift the chunk back and let socks handler read it.
+            socket.unshift(chunk);
+            socket.resume();
+            handleSocksConnection(socket);
+        } else {
+            // Assume HTTP/HTTPS
+            socket.unshift(chunk);
+            socket.resume();
+            httpServer.emit('connection', socket);
+        }
+    });
+
+    socket.on('error', (err) => {
+        logger.debug('Net Server Socket Error:', err);
+    });
+});
+
 if (require.main === module) {
-    server.listen(PORT, () => {
-        logger.info(`Proxy server running on port ${PORT}`);
+    netServer.listen(PORT, () => {
+        logger.info(`Proxy server (HTTP + SOCKS5) running on port ${PORT}`);
         logger.info(`Certificate validation is disabled.`);
         if (config.log.file) {
             logger.info(`Logging to file: ${config.log.file}`);
@@ -108,4 +137,4 @@ if (require.main === module) {
     });
 }
 
-export default server;
+export default netServer;
