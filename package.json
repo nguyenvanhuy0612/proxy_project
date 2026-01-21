@@ -1,0 +1,28 @@
+{
+  "name": "proxy_project",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start:dev": "ts-node proxy.ts",
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "start": "node dist/proxy.js",
+    "test": "jest",
+    "examples": "ts-node examples.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@types/http-proxy": "^1.17.17",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^25.0.9",
+    "axios": "^1.13.2",
+    "http-proxy": "^1.18.1",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.6",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
