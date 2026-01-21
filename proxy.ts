@@ -2,11 +2,12 @@ import * as http from 'http';
 import * as net from 'net';
 import * as url from 'url';
 import { logger } from './logger';
+import { config } from './config';
 
 // 1. Ignore certificate errors (global setting)
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
-const PORT = parseInt(process.env.PORT || '8080', 10);
+const PORT = config.port;
 
 const server = http.createServer((req, res) => {
     // Check if this is a proxy request (absolute URI) or a direct request
@@ -101,8 +102,8 @@ if (require.main === module) {
     server.listen(PORT, () => {
         logger.info(`Proxy server running on port ${PORT}`);
         logger.info(`Certificate validation is disabled.`);
-        if (process.env.LOG_FILE) {
-            logger.info(`Logging to file: ${process.env.LOG_FILE}`);
+        if (config.log.file) {
+            logger.info(`Logging to file: ${config.log.file}`);
         }
     });
 }

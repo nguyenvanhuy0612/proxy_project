@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { config } from './config';
 
 export enum LogLevel {
     DEBUG = 0,
@@ -13,14 +14,13 @@ class Logger {
     private logFile: string | null = null;
 
     constructor() {
-        const envLevel = process.env.LOG_LEVEL?.toUpperCase();
-        if (envLevel && envLevel in LogLevel) {
-            this.level = LogLevel[envLevel as keyof typeof LogLevel];
+        const configLevel = config.log.level.toUpperCase();
+        if (configLevel in LogLevel) {
+            this.level = LogLevel[configLevel as keyof typeof LogLevel];
         }
 
-        const envFile = process.env.LOG_FILE;
-        if (envFile) {
-            this.logFile = path.resolve(process.cwd(), envFile);
+        if (config.log.file) {
+            this.logFile = path.resolve(process.cwd(), config.log.file);
             // Ensure directory exists
             const dir = path.dirname(this.logFile);
             if (!fs.existsSync(dir)) {
