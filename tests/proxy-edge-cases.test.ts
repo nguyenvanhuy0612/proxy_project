@@ -4,7 +4,7 @@ import axios from 'axios';
 import { AddressInfo } from 'net';
 
 describe('Proxy Server - Edge Cases', () => {
-    let proxyServer: http.Server;
+    let proxyServer: any;
     let targetServer: http.Server;
     let proxyPort: number;
     let targetPort: number;
@@ -55,7 +55,7 @@ describe('Proxy Server - Edge Cases', () => {
             targetPort = (targetServer.address() as AddressInfo).port;
             targetUrl = `http://127.0.0.1:${targetPort}`;
 
-            proxyServer = server.listen(0, () => {
+            proxyServer = (server as any).listen(0, () => {
                 proxyPort = (proxyServer.address() as AddressInfo).port;
                 done();
             });

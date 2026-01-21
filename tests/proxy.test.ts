@@ -4,7 +4,7 @@ import axios from 'axios';
 import { AddressInfo } from 'net';
 
 describe('Proxy Server', () => {
-    let proxyServer: http.Server;
+    let proxyServer: any;
     let targetServer: http.Server;
     let proxyPort: number;
     let targetPort: number;
@@ -33,7 +33,7 @@ describe('Proxy Server', () => {
             // We need to call listen again on the server instance. 
             // Since `server` is already created, we just call .listen() on it.
             // Note: In node http.Server, .listen() can be called if not already listening.
-            proxyServer = server.listen(0, () => {
+            proxyServer = (server as any).listen(0, () => {
                 proxyPort = (proxyServer.address() as AddressInfo).port;
                 done();
             });

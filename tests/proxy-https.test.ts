@@ -5,12 +5,12 @@ import axios from 'axios';
 import { AddressInfo } from 'net';
 
 describe('Proxy Server - HTTPS Tunneling', () => {
-    let proxyServer: http.Server;
+    let proxyServer: any;
     let proxyPort: number;
 
     beforeAll((done) => {
         // Start Proxy Server
-        proxyServer = server.listen(0, () => {
+        proxyServer = (server as any).listen(0, () => {
             proxyPort = (proxyServer.address() as AddressInfo).port;
             done();
         });

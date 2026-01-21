@@ -40,12 +40,13 @@ export const handleSocksConnection = (socket: net.Socket) => {
             try {
                 const atyp = request[3];
                 if (atyp === 0x01) { // IPv4
-                    addr = request.slice(4, 8).join('.');
+                    const ipBytes = request.slice(4, 8);
+                    addr = [ipBytes[0], ipBytes[1], ipBytes[2], ipBytes[3]].join('.');
                     addrLen = 4;
                 } else if (atyp === 0x03) { // Domain name
-                    const len = request[4];
+                    const len = request[4] as number;
                     addr = request.slice(5, 5 + len).toString();
-                    addrLen = len + 1; // len byte + chars
+                    addrLen = (len as number) + 1; // len byte + chars
                 } else if (atyp === 0x04) { // IPv6
                     // Basic IPv6 parsing (simplified)
                     logger.warn('SOCKS5 IPv6 not fully implemented yet');
@@ -58,7 +59,7 @@ export const handleSocksConnection = (socket: net.Socket) => {
                     return;
                 }
 
-                port = request.readUInt16BE(4 + addrLen);
+                port = (request as Buffer).readUInt16BE(4 + addrLen);
 
                 logger.info(`SOCKS5 Connect Request to ${addr}:${port}`);
 
