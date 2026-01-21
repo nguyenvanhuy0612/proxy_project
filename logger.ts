@@ -15,12 +15,27 @@ class Logger {
 
     constructor() {
         const configLevel = config.log.level.toUpperCase();
+
+        // LogLevel is a numeric enum: { DEBUG: 0, INFO: 1, ... }
+        // We want to see if 'DEBUG' is a key in LogLevel.
         if (configLevel in LogLevel) {
             this.level = LogLevel[configLevel as keyof typeof LogLevel];
+        } else {
+            console.warn(`Invalid log level '${configLevel}', defaulting to INFO`);
         }
 
+        // Internal debug
+        // console.log(`[Logger] Config Level: ${configLevel}, Active Level: ${LogLevel[this.level]} (${this.level})`);
+
         if (config.log.file) {
-            this.logFile = path.resolve(process.cwd(), config.log.file);
+            // Determine application root directory to ensure logs are stored relative to the app, not CWD
+            const isPkg = (process as any).pkg;
+            const appRoot = isPkg
+                ? path.dirname(process.execPath)
+                : path.dirname(require.main?.filename || __dirname);
+
+            this.logFile = path.resolve(appRoot, config.log.file);
+
             // Ensure directory exists
             const dir = path.dirname(this.logFile);
             if (!fs.existsSync(dir)) {
