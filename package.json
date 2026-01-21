@@ -8,7 +8,8 @@
     "clean": "rm -rf dist",
     "start": "node dist/proxy.js",
     "test": "jest",
-    "examples": "ts-node examples.ts"
+    "examples": "ts-node examples.ts",
+    "make-exe": "npm run build && pkg dist/proxy.js --target node18-win-x64 --output dist/proxy-server.exe"
   },
   "keywords": [],
   "author": "",
@@ -21,6 +22,7 @@
     "axios": "^1.13.2",
     "http-proxy": "^1.18.1",
     "jest": "^30.2.0",
+    "pkg": "^5.8.1",
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"

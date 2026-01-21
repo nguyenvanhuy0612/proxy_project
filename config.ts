@@ -18,10 +18,16 @@ const defaultConfig: AppConfig = {
 
 // Resolve config path relative to the script location (handles both dev and prod/dist)
 const potentialPaths = [
-    path.resolve(__dirname, 'config.json'),       // Dev: root/config.ts -> root/config.json
-    path.resolve(__dirname, '..', 'config.json')  // Prod: root/dist/config.js -> root/config.json
+    path.resolve(path.dirname(process.execPath), 'config.json'), // 1. Executable dir (for pkg/exe)
+    path.resolve(__dirname, 'config.json'),                      // 2. Dev: root/config.ts -> root/config.json
+    path.resolve(__dirname, '..', 'config.json')                 // 3. Prod: root/dist/config.js -> root/config.json
 ];
 const configPath = potentialPaths.find(p => fs.existsSync(p)) || potentialPaths[0];
+
+// Log loaded config path for debugging
+if (process.env.DEBUG) {
+    console.log(`Loading config from: ${configPath}`);
+}
 let userConfig: Partial<AppConfig> = {};
 
 if (fs.existsSync(configPath)) {
