@@ -1,0 +1,7 @@
+{
+    "port": 8080,
+    "log": {
+        "level": "INFO",
+        "file": "logs/proxy.log"
+    }
+}
