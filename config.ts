@@ -16,7 +16,12 @@ const defaultConfig: AppConfig = {
     }
 };
 
-const configPath = path.resolve(process.cwd(), 'config.json');
+// Resolve config path relative to the script location (handles both dev and prod/dist)
+const potentialPaths = [
+    path.resolve(__dirname, 'config.json'),       // Dev: root/config.ts -> root/config.json
+    path.resolve(__dirname, '..', 'config.json')  // Prod: root/dist/config.js -> root/config.json
+];
+const configPath = potentialPaths.find(p => fs.existsSync(p)) || potentialPaths[0];
 let userConfig: Partial<AppConfig> = {};
 
 if (fs.existsSync(configPath)) {
