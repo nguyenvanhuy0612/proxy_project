@@ -1,6 +1,7 @@
 import * as http from 'http';
 import * as net from 'net';
 import * as url from 'url';
+import { logger } from './logger';
 
 // 1. Ignore certificate errors (global setting)
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
@@ -29,15 +30,23 @@ const server = http.createServer((req, res) => {
 
     // Forward the request
     const proxyReq = http.request(options, (proxyRes) => {
-        res.writeHead(proxyRes.statusCode || 500, proxyRes.headers);
-        proxyRes.pipe(res, { end: true });
+        if (res.writable) {
+            res.writeHead(proxyRes.statusCode || 500, proxyRes.headers);
+            proxyRes.pipe(res, { end: true });
+        }
     });
 
-    proxyReq.on('error', (err) => {
-        console.error('Proxy Request Error:', err);
-        if (!res.headersSent) {
-            res.writeHead(500);
-            res.end('Proxy Error');
+    proxyReq.on('error', (err: any) => {
+        // Handle common networking errors more gracefully
+        if (err.code === 'ETIMEDOUT' || err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
+            logger.warn(`Proxy Request Failed (${err.code}):`, err.message);
+        } else {
+            logger.error('Proxy Request Error:', err);
+        }
+
+        if (!res.headersSent && res.writable) {
+            res.writeHead(502); // Bad Gateway
+            res.end(`Proxy Error: ${err.code || err.message}`);
         }
     });
 
@@ -55,31 +64,46 @@ server.on('connect', (req, clientSocket, head) => {
 
     // Connect to the destination server
     const serverSocket = net.connect(Number(port), hostname, () => {
-        clientSocket.write('HTTP/1.1 200 Connection Established\r\n' +
-            'Proxy-agent: Node.js-Proxy\r\n' +
-            '\r\n');
-        serverSocket.write(head);
+        if (clientSocket.writable) {
+            clientSocket.write('HTTP/1.1 200 Connection Established\r\n' +
+                'Proxy-agent: Node.js-Proxy\r\n' +
+                '\r\n');
+            serverSocket.write(head);
 
-        // Pipe the data
-        serverSocket.pipe(clientSocket);
-        clientSocket.pipe(serverSocket);
+            // Pipe the data
+            serverSocket.pipe(clientSocket);
+            clientSocket.pipe(serverSocket);
+        } else {
+            serverSocket.end();
+        }
     });
 
-    serverSocket.on('error', (err) => {
-        console.error('Socket Error:', err);
-        clientSocket.end();
+    serverSocket.on('error', (err: any) => {
+        if (err.code === 'ECONNRESET' || err.code === 'EPIPE' || err.code === 'ETIMEDOUT') {
+            logger.debug('Server Socket Issue:', err.code);
+        } else {
+            logger.error('Server Socket error:', err);
+        }
+        clientSocket.destroy();
     });
 
-    clientSocket.on('error', (err) => {
-        console.error('Client Socket Error:', err);
-        serverSocket.end();
+    clientSocket.on('error', (err: any) => {
+        if (err.code === 'ECONNRESET' || err.code === 'EPIPE' || err.code === 'ECONNABORTED') {
+            logger.debug('Client Socket Issue:', err.code);
+        } else {
+            logger.error('Client Socket error:', err);
+        }
+        serverSocket.destroy();
     });
 });
 
 if (require.main === module) {
     server.listen(PORT, () => {
-        console.log(`Proxy server running on port ${PORT}`);
-        console.log(`Certificate validation is disabled.`);
+        logger.info(`Proxy server running on port ${PORT}`);
+        logger.info(`Certificate validation is disabled.`);
+        if (process.env.LOG_FILE) {
+            logger.info(`Logging to file: ${process.env.LOG_FILE}`);
+        }
     });
 }
 
